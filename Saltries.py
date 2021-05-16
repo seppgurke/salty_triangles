@@ -1,30 +1,16 @@
-"""
-Welcome to your first Halite-II bot!
-
-This bot's name is Settler. It's purpose is simple (don't expect it to win complex games :) ):
-1. Initialize game
-2. If a ship is not docked and there are unowned planets
-2.a. Try to Dock in the planet if close enough
-2.b If not, go towards the planet
-
-Note: Please do not place print statements here as they are used to communicate with the Halite engine. If you need
-to log anything use the logging module.
-"""
-# Let's start by importing the Halite Starter Kit so we can interface with the Halite engine
 import hlt
 import math
 from collections import OrderedDict
 import logging
 
 # GAME START
-# Here we define the bot's name as Settler and initialize the game, including communication with the Halite engine.
 game = hlt.Game("Saltries")
 # Then we print our start message to the logs
-logging.info("Starting the winning bot!")
+logging.info("Das Salz probiert es!")
 
 
 while True:
-    # TURN START
+    # TURN START - Update markiert neuen Spielzug
     game_map = game.update_map()
     command_queue = []
 
@@ -37,15 +23,17 @@ while True:
         if ship.docking_status != ship.DockingStatus.UNDOCKED:
             # Skip this ship
             continue
-
-        logging.info(game_map.get_me())
+        # Alle möglichen Zielobjekte erfassen
         Objekte = game_map.nearby_entities_by_distance(ship)
+        # Dict sortieren
         Objekte = OrderedDict(sorted(Objekte.items(), key=lambda t: t[0]))
+        # 15 wichtigsten Objekte aus Dict in eine Lsite übertragen
         Objekte_Liste = []
         i = 0
         for dis, entity in Objekte.items():
             logging.info(entity)
             for ent in entity:
+                # eigene Schiffe sind keine Zielobjekte
                 if ent in team_ships:
                     continue
                 else:
@@ -62,22 +50,23 @@ while True:
         for entity in Objekte_Liste:
             #Wenn ent ein Planet ist
             if entity in game_map.all_planets():
+                z = entity.radius * (1/ship.calculate_distance_between(entity))
                 #ein unbesetzter
                 if not entity.is_owned():
-                    z = entity.radius * (1/ship.calculate_distance_between(entity))
+                    #z = entity.radius * (1/ship.calculate_distance_between(entity))
                     if z>z_alt:
                         wahl = entity
                         z_alt = z
                 #ein eigener Planet
                 elif entity.owner.id == game_map.get_me().id:
                     if len(entity._docked_ships) != entity.num_docking_spots:
-                        z = entity.radius * (1/ship.calculate_distance_between(entity)) * (1/entity.health)
+                        #z = entity.radius * (1/ship.calculate_distance_between(entity)) 
                         if z>z_alt:
                             wahl = entity
                             z_alt = z
                 #ein gegnerischer Planet
                 else:
-                    z = entity.radius * (1/ship.calculate_distance_between(entity))
+                    #z = entity.radius * (1/ship.calculate_distance_between(entity))
                     if z>z_alt:
                         wahl = entity
                         z_alt = z
@@ -88,7 +77,8 @@ while True:
                     wahl = entity
                     z_alt = z
 
-        #Handeln entscheiden
+        #Handeln entscheiden je nach Entity-Art
+        # Schiff ist noch zu weit entfernt
         if not ship.can_dock(wahl):
             navigate_command = ship.navigate(
             ship.closest_point_to(wahl),
@@ -97,9 +87,12 @@ while True:
             ignore_ships=False)
             if navigate_command:
                 command_queue.append(navigate_command)
+        # Wahl ist ein ausreichend naher Planet
         elif wahl in game_map.all_planets() and ship.can_dock(wahl):
+            # Docken falls kein gegnerischer Planet
             if wahl.owner == None or wahl.owner.id == game_map.get_me().id:
                 command_queue.append(ship.dock(wahl))
+            # Sudoku am Planeten begehen, falls gegnerisch
             else:
                 navigate_command = ship.thrust(7,ship.calculate_angle_between(wahl))
                 command_queue.append(navigate_command)
