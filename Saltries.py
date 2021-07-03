@@ -4,7 +4,7 @@ from collections import OrderedDict
 import logging
 
 # GAME START
-game = hlt.Game("Saltries")
+game = hlt.Game("salty_triangles")
 # Then we print our start message to the logs
 logging.info("Das Salz probiert es!")
 
